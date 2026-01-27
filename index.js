@@ -42,6 +42,7 @@ async function downloadThreadsMedia(profileUrl) {
 
   const browser = await puppeteer.launch({
     headless: true,
+    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
     defaultViewport: null
   });
