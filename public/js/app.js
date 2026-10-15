@@ -538,8 +538,13 @@
   async function handleDownloadZip() {
     if (collectedMedia.length === 0) return;
 
-    const profileName = currentProfile ? (currentProfile.displayName || currentProfile.username) : 'threads_user';
-    showToast(`Packaging ${collectedMedia.length} files into ZIP. Download starting...`, 'info');
+    // Strictly username (nothing else)
+    const username = currentProfile && currentProfile.username ? currentProfile.username : 'threads_media';
+    showToast(`Packaging ${collectedMedia.length} files into ${username}.zip...`, 'info');
+
+    downloadZipBtn.disabled = true;
+    const originalBtnText = zipBtnText.textContent;
+    zipBtnText.textContent = 'Packaging ZIP...';
 
     try {
       const res = await fetch('/api/download-zip', {
@@ -547,7 +552,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items: collectedMedia,
-          profileName: profileName
+          profileName: username
         })
       });
 
@@ -560,16 +565,19 @@
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${profileName}_media.zip`;
+      a.download = `${username}.zip`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
 
-      showToast('ZIP download complete!', 'success');
+      showToast(`Downloaded ${username}.zip successfully!`, 'success');
     } catch (err) {
       console.error('ZIP download error:', err);
       showToast('Failed to generate ZIP: ' + err.message, 'error');
+    } finally {
+      downloadZipBtn.disabled = false;
+      zipBtnText.textContent = originalBtnText;
     }
   }
 
