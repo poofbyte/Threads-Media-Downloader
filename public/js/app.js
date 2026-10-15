@@ -130,6 +130,10 @@
 
     // Cookie settings modal
     cookieSettingsBtn.addEventListener('click', openCookieModal);
+    const bannerCookieBtn = document.getElementById('bannerCookieBtn');
+    if (bannerCookieBtn) {
+      bannerCookieBtn.addEventListener('click', openCookieModal);
+    }
     closeCookieModalBtn.addEventListener('click', closeCookieModal);
     cookieModal.addEventListener('click', (e) => {
       if (e.target === cookieModal) closeCookieModal();
@@ -281,7 +285,12 @@
     stopScanBtn.style.display = 'none';
     progressBar.style.width = '100%';
     scanStatusBadge.textContent = isError ? 'Ended' : 'Completed';
-    statusMessage.textContent = message;
+    const storedCookies = localStorage.getItem(STORAGE_KEY_COOKIES) || '';
+    if (!isError && !storedCookies && collectedMedia.length > 0) {
+      statusMessage.textContent = `${message} — Tip: Add cookies 🍪 to download 1000+ historical posts.`;
+    } else {
+      statusMessage.textContent = message;
+    }
 
     if (isError) {
       showToast(message, 'error');
