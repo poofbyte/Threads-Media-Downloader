@@ -1,132 +1,85 @@
-# Threads Media Dwonloader
+# Threads Media Downloader — Standalone Web Application
 
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org/)  
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Download all high-resolution images and videos from a Threads profile into a single ZIP archive using Node.js and Puppeteer.**
-
----
-
-## 🔍 SEO Description
-
-Easily download and archive all high-quality photos and videos from any Threads.net profile with this automated Node.js script. Perfect for backing up your favorite Threads content into a neatly named ZIP file.
+A standalone web application to scan, preview, and download high-resolution photos, carousels, and videos from any Threads profile individually or as a single neatly named ZIP archive.
 
 ---
 
 ## ✨ Features
 
-- ✅ Automatically scrolls through a Threads profile to load all posts  
-- 📸 Extracts only high-resolution images and videos (skips low-res/thumbnail versions)  
-- 🗂️ Downloads all media into a single ZIP archive named after the profile username  
-- 🧾 Terminal logging of every step and file  
-- ⚡ Fast and headless browser automation using Puppeteer  
-- 📦 No external fetch dependency (uses Node 18+ native `fetch`)  
+- **Profile-Based Scanning**: Enter any Threads profile URL (`threads.net/@user`), handle (`@user`), or username (`user`).
+- **Complete Media Collection**:
+  - Automatically navigates profile feeds and dedicated `/media` tabs.
+  - Automatically bypasses login popups for continuous scrolling down `div#scrollview`.
+  - Unpacks multi-slide carousels into individual high-resolution items.
+- **Highest Available Resolution**:
+  - Extracts full 4K / UHD original image candidates (`candidates` reduction to max dimensions).
+  - Extracts 1280p progressive MP4 videos directly from Meta CDNs.
+- **Dynamic Live Gallery**:
+  - Real-time media streaming via Server-Sent Events (SSE) — media cards appear in real time as scanning progresses.
+  - Interactive video previews with hover playback.
+  - Fullscreen Lightbox modal with zoom, caption display, and direct post link.
+  - Filter pills for `All`, `Images`, `Videos`, and `Carousels`.
+- **Individual & Bulk ZIP Downloads**:
+  - Download any image or video individually with a single click.
+  - Download all collected media in a single ZIP file (`profile_name_media.zip`) streamed directly without memory overload.
+  - Preserves original usernames and Unicode characters while safely sanitizing OS-restricted characters (`<>:"/\|?*`).
+- **Optional Threads Session Cookies**:
+  - Clean cookie modal with complete local-only privacy reassurance.
+  - Supports standard header string (`sessionid=...; ds_user_id=...`) and JSON array formats.
+  - Enables authenticated scanning for deeper pagination and private profiles you have access to.
 
 ---
 
-## 🧰 Requirements
+## 🚀 Quick Start
 
-- **Node.js v18 or later** ([download](https://nodejs.org/))  
-- npm (comes with Node)
-
----
-
-## ⚙️ Installation
-
-1. Clone or download this repository  
-2. Navigate into the project folder in your terminal  
-3. Install dependencies:
+### 1. Install Dependencies
 
 ```bash
-npm install puppeteer jszip
-````
+npm install
+```
 
----
-
-## 🚀 Usage
-
-### 1. Run with a specific profile URL
+### 2. Start the Web Server
 
 ```bash
-node index.js https://www.threads.net/@your_username
+npm start
 ```
 
-> The downloaded ZIP will be named: `your_username.zip`
+### 3. Open in Browser
 
-### 2. Or use the default (fallback) URL
+Visit **`http://localhost:3000`** in your browser.
 
-If you don't pass a URL, the script will fall back to a hardcoded profile (you can change it in `index.js`):
+---
 
-```bash
-node index.js
+## 🗂️ Project Structure
+
+```
+Threads-Media-Downloader/
+├── lib/
+│   ├── scraper.js          # Puppeteer intelligent scraper, network interceptor, and scrolling engine
+│   ├── media-extractor.js  # Candidate resolution optimizer, carousel unpacker, and filename sanitizer
+│   └── zip-builder.js      # Streaming ZIP generator using JSZip
+├── public/
+│   ├── index.html          # Semantic HTML5 interface with dark mode and glassmorphism
+│   ├── css/
+│   │   └── style.css       # Vanilla CSS design system with micro-animations and responsive grid
+│   └── js/
+│       └── app.js          # Reactive frontend controller (SSE streams, gallery, lightbox, cookies)
+├── server.js               # Express HTTP & SSE API server
+├── test_e2e_scan.js        # Automated end-to-end integration test
+└── package.json            # Project manifest and start script
 ```
 
 ---
 
-## 🧪 Example Output
+## 🔒 Optional Cookie Privacy Notice
 
-```bash
-🚀 Starting media download from: https://www.threads.net/@helooooo
-📦 ZIP output will be: helooooo.zip
-🧭 Launching headless browser...
-✅ Page loaded.
-🔄 Scrolling to load all posts...
-📜 Scroll #1
-🛑 Reached bottom of page.
-🔍 Extracting media URLs...
-📸 Found 78 high-res media files. Starting downloads...
-⬇️  [1/78] Downloading: https://...
-...
-📦 Creating ZIP with 78 files...
-✅ ZIP saved: helooooo.zip
-🏁 Done.
-```
-
----
-
-## 💡 Notes
-
-* The script filters out thumbnail or low-resolution images by detecting common URL patterns like `p240x240`, `thumb`, etc.
-* Download time depends on the number of posts and your internet speed
-* Use responsibly and in accordance with Threads/Meta's Terms of Service
-
----
-
-## 🧯 Troubleshooting
-
-| Issue                       | Solution                                                                                                      |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| ❌ `fetch is not a function` | You must use **Node.js v18+** — check with `node -v`                                                          |
-| ❌ Puppeteer install failed  | Try `npm install puppeteer --force` or refer to [Puppeteer troubleshooting](https://pptr.dev/troubleshooting) |
-| ❌ `No media found`          | Ensure the profile is public and has posts with images/videos                                                 |
-
----
-
-## 📁 .gitignore
-
-To keep your project clean:
-
-```
-node_modules/
-*.zip
-.DS_Store
-```
+Session cookies are stored **only locally in your browser/machine** and are never transmitted to third parties, logged to disk, or included in exports. Standard unauthenticated scans work out of the box.
 
 ---
 
 ## 📜 License
 
-This project is licensed under the [MIT License](https://opensource.org/licenses/MIT).
-Use this script responsibly and for personal archiving only.
-
----
-
-## 🤝 Contact
-
-Found a bug or want a new feature?
-Open an issue or start a discussion on GitHub!
-
----
-
-**Enjoy your Threads backups!**
-🚀📦🧵
+MIT License. For personal archival and educational purposes.

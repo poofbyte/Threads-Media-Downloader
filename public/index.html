@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Download high-resolution photos, carousels, and videos from any Threads profile in bulk or individually.">
+  <meta name="referrer" content="no-referrer">
+  <title>Threads Media Downloader — High-Res Photo & Video Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="dark-theme">
+  <!-- Background Glow Accents -->
+  <div class="glow-orb glow-orb-1" aria-hidden="true"></div>
+  <div class="glow-orb glow-orb-2" aria-hidden="true"></div>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="container header-container">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 15a5 5 0 1 1 5-5 5 5 0 0 1-5 5z"/>
+            <path d="M16.5 7.5v.001"/>
+            <path d="M12 14a2 2 0 1 0 2-2 2 2 0 0 0-2 2z"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-name">Threads<span class="brand-accent">Media</span></span>
+          <span class="brand-badge">PRO</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="cookieSettingsBtn" class="btn btn-secondary btn-icon" title="Optional Session Cookie Settings" aria-label="Configure Threads Session Cookies">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          <span class="cookie-btn-label">Cookies</span>
+          <span id="cookieIndicator" class="cookie-dot" title="No cookies configured"></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Hero & Search -->
+  <main class="main-content">
+    <section class="hero-section">
+      <div class="container hero-container">
+        <div class="hero-tag">Standalone Media Hub</div>
+        <h1 class="hero-title">Download Threads Media at <span class="gradient-text">Original Quality</span></h1>
+        <p class="hero-subtitle">Enter any Threads profile URL or username to scan, preview, and download full-resolution images, carousels, and videos in seconds.</p>
+
+        <!-- Search Bar Form -->
+        <form id="scanForm" class="search-form" autocomplete="off">
+          <div class="input-wrapper">
+            <div class="input-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </div>
+            <input 
+              type="text" 
+              id="profileInput" 
+              name="profileInput" 
+              placeholder="Enter @username or threads.net/@profile URL..." 
+              required
+              spellcheck="false"
+            >
+            <button type="button" id="clearInputBtn" class="clear-btn" aria-label="Clear input" style="display: none;">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+          <div class="form-buttons">
+            <button type="submit" id="startScanBtn" class="btn btn-primary btn-glow">
+              <svg class="btn-icon-svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              <span>Scan Profile</span>
+            </button>
+            <button type="button" id="stopScanBtn" class="btn btn-danger" style="display: none;">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="6" y="6" width="12" height="12"></rect>
+              </svg>
+              <span>Stop Scan</span>
+            </button>
+          </div>
+        </form>
+
+        <!-- Quick Suggestions -->
+        <div class="quick-examples">
+          <span class="examples-label">Try popular profiles:</span>
+          <button type="button" class="example-pill" data-profile="zuck">@zuck</button>
+          <button type="button" class="example-pill" data-profile="threads">@threads</button>
+          <button type="button" class="example-pill" data-profile="instagram">@instagram</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Scan Progress & Profile Banner (Hidden initially) -->
+    <section id="statusSection" class="status-section" style="display: none;">
+      <div class="container">
+        <div class="status-card glass-panel">
+          <div class="status-top">
+            <div class="profile-card" id="profileSummary" style="display: none;">
+              <div class="profile-avatar-container">
+                <img id="profileAvatar" src="" alt="" class="profile-avatar" referrerpolicy="no-referrer" style="display: none;">
+                <div id="profileAvatarFallback" class="profile-avatar-fallback">
+                  <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                </div>
+              </div>
+              <div class="profile-meta">
+                <div class="profile-name-row">
+                  <h2 id="profileDisplayName" class="profile-display-name">Username</h2>
+                  <span id="profileUsername" class="profile-handle">@username</span>
+                </div>
+                <p id="profileBio" class="profile-bio"></p>
+              </div>
+            </div>
+            <div class="status-indicators">
+              <div class="live-pill">
+                <span class="live-pulse"></span>
+                <span id="scanStatusBadge">Scanning...</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="progress-bar-container">
+            <div id="progressBar" class="progress-bar">
+              <div class="progress-bar-glow"></div>
+            </div>
+          </div>
+          
+          <div class="status-bottom">
+            <span id="statusMessage" class="status-message">Connecting to profile...</span>
+            <span id="scrollRoundInfo" class="scroll-info"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stats & Action Toolbar -->
+    <section id="toolbarSection" class="toolbar-section" style="display: none;">
+      <div class="container toolbar-container">
+        <!-- Live Stat Badges -->
+        <div class="stat-pills">
+          <div class="stat-pill" data-filter="all">
+            <span class="stat-label">Total Media</span>
+            <span id="statTotal" class="stat-val">0</span>
+          </div>
+          <div class="stat-pill" data-filter="image">
+            <span class="stat-label">Images</span>
+            <span id="statImages" class="stat-val">0</span>
+          </div>
+          <div class="stat-pill" data-filter="video">
+            <span class="stat-label">Videos</span>
+            <span id="statVideos" class="stat-val">0</span>
+          </div>
+          <div class="stat-pill" data-filter="carousel">
+            <span class="stat-label">Carousels</span>
+            <span id="statCarousels" class="stat-val">0</span>
+          </div>
+        </div>
+
+        <!-- Download Actions -->
+        <div class="toolbar-actions">
+          <button id="downloadZipBtn" class="btn btn-primary btn-zip" disabled>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span id="zipBtnText">Download All (ZIP)</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Live Media Gallery Grid -->
+    <section class="gallery-section">
+      <div class="container">
+        <div id="galleryEmptyState" class="empty-state">
+          <div class="empty-icon">
+            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+          </div>
+          <h3>Your Discovered Media Will Appear Here</h3>
+          <p>Enter a Threads username above to populate high-resolution photos and videos in real time.</p>
+        </div>
+
+        <div id="mediaGrid" class="media-grid" style="display: none;">
+          <!-- Dynamically populated media cards -->
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Lightbox Modal -->
+  <div id="lightboxModal" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-label="Media Preview">
+    <div class="lightbox-wrapper">
+      <button id="closeLightboxBtn" class="modal-close-btn" aria-label="Close preview">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+
+      <div class="lightbox-content">
+        <div id="lightboxMediaContainer" class="lightbox-media-container">
+          <!-- Image or Video rendered here -->
+        </div>
+
+        <div class="lightbox-sidebar">
+          <div class="lightbox-meta">
+            <span id="lightboxBadge" class="card-badge">HD</span>
+            <span id="lightboxResolution" class="lightbox-res-text">Original</span>
+          </div>
+          <p id="lightboxCaption" class="lightbox-caption"></p>
+          <div class="lightbox-actions">
+            <a id="lightboxDownloadBtn" href="#" class="btn btn-primary" download>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Download High-Res</span>
+            </a>
+            <a id="lightboxPostLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                <polyline points="15 3 21 3 21 9"></polyline>
+                <line x1="10" y1="14" x2="21" y2="3"></line>
+              </svg>
+              <span>View Post</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cookie Settings & Privacy Modal -->
+  <div id="cookieModal" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-label="Threads Cookies Configuration">
+    <div class="modal-panel glass-panel">
+      <div class="modal-header">
+        <div class="modal-title-row">
+          <div class="modal-title-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+          </div>
+          <div>
+            <h3 class="modal-title">Optional Threads Session Cookies</h3>
+            <p class="modal-subtitle">Enhance scanning accuracy and bypass anonymous view limits</p>
+          </div>
+        </div>
+        <button id="closeCookieModalBtn" class="modal-close-btn" aria-label="Close modal">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="cookie-notice-banner">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          <div>
+            <strong>100% Local & Private Processing:</strong>
+            Cookies remain entirely on your local machine. They are never uploaded to remote servers, external APIs, third parties, or logged anywhere.
+          </div>
+        </div>
+
+        <div class="guide-steps">
+          <p class="steps-heading">How to get your Threads cookies:</p>
+          <ol>
+            <li>Open <a href="https://www.threads.net" target="_blank" rel="noopener noreferrer">threads.net</a> in Chrome and ensure you are logged in.</li>
+            <li>Press <kbd>F12</kbd> (or right-click &rarr; <em>Inspect</em>) &rarr; go to <strong>Application</strong> tab &rarr; <strong>Cookies</strong> &rarr; <code>https://www.threads.net</code>.</li>
+            <li>Copy your cookie values (especially <code>sessionid</code> and <code>csrftoken</code>) or paste the complete Cookie header string / Cookie-Editor JSON below.</li>
+          </ol>
+        </div>
+
+        <div class="form-group">
+          <label for="cookieInputText">Paste Threads Cookie String or JSON:</label>
+          <textarea 
+            id="cookieInputText" 
+            rows="4" 
+            placeholder="e.g. sessionid=63055...; ds_user_id=...; csrftoken=... or [{&quot;name&quot;:&quot;sessionid&quot;,&quot;value&quot;:&quot;...&quot;}]"
+            spellcheck="false"
+          ></textarea>
+        </div>
+
+        <div class="cookie-status-bar">
+          <span id="currentCookieStatusText">No cookies configured. Using standard anonymous scanner.</span>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="clearCookiesBtn" class="btn btn-secondary">Remove Cookies</button>
+        <button type="button" id="saveCookiesBtn" class="btn btn-primary">Save & Apply Locally</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
