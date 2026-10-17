@@ -239,6 +239,8 @@ const handleZipDownload = async (req, res) => {
     return res.status(400).send('No downloadable media URLs found.');
   }
 
+  console.log(`[ZIP API] Packaging request for @${username || 'user'} (${validItems.length} items)...`);
+
   try {
     await streamZipArchive(validItems, username, res);
   } catch (err) {

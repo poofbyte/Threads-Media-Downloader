@@ -540,31 +540,23 @@
 
     // Strictly username (nothing else)
     const username = currentProfile && currentProfile.username ? currentProfile.username : 'threads_user';
-    showToast(`Generating ${username}.zip (${collectedMedia.length} files)... Download will begin shortly.`, 'info');
+    showToast(`Packaging ${collectedMedia.length} files... It will be saved directly to your computer's Downloads folder as "${username}.zip".`, 'info');
 
     downloadZipBtn.disabled = true;
     const originalBtnText = zipBtnText.textContent;
     zipBtnText.textContent = 'Packaging ZIP...';
 
-    // 1. Direct native download via GET: 0 payload, uses server-cached scan results
+    // 1. Try GET first (0 payload, uses server-cached scan results)
     const getUrl = `/api/download-zip?sessionId=${encodeURIComponent(activeSessionId || '')}&username=${encodeURIComponent(username)}`;
 
     try {
-      // Trigger native browser download directly via anchor
-      const a = document.createElement('a');
-      a.href = getUrl;
-      a.download = `${username}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      let res = await fetch(getUrl);
 
-      showToast(`ZIP packaging initiated for ${username}.zip!`, 'success');
-    } catch (err) {
-      console.warn('Native GET download trigger warning, attempting lightweight POST fallback:', err);
-      // Fallback: If GET trigger had any issue, send ultra-lightweight payload (only url & filename, no captions/previews)
-      try {
+      // If GET cache was not found (e.g. server was restarted after scanning), fall back to lightweight POST
+      if (!res.ok) {
+        console.warn(`GET download-zip returned status ${res.status}, falling back to direct lightweight POST...`);
         const lightweightItems = collectedMedia.map(m => ({ url: m.url, filename: m.filename }));
-        const res = await fetch('/api/download-zip', {
+        res = await fetch('/api/download-zip', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -573,29 +565,30 @@
             items: lightweightItems
           })
         });
-
-        if (!res.ok) throw new Error(`Server returned status ${res.status}`);
-
-        const blob = await res.blob();
-        const blobUrl = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = `${username}.zip`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(blobUrl);
-
-        showToast(`Downloaded ${username}.zip successfully!`, 'success');
-      } catch (fallbackErr) {
-        console.error('ZIP download error:', fallbackErr);
-        showToast('Failed to generate ZIP: ' + fallbackErr.message, 'error');
       }
+
+      if (!res.ok) {
+        throw new Error(`Server returned HTTP ${res.status}`);
+      }
+
+      // Receive ZIP blob and trigger browser download
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `${username}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(blobUrl);
+
+      showToast(`"${username}.zip" downloaded! Check your computer's Downloads folder.`, 'success');
+    } catch (err) {
+      console.error('ZIP download error:', err);
+      showToast('Failed to download ZIP: ' + err.message, 'error');
     } finally {
-      setTimeout(() => {
-        downloadZipBtn.disabled = false;
-        zipBtnText.textContent = originalBtnText;
-      }, 3000);
+      downloadZipBtn.disabled = false;
+      zipBtnText.textContent = originalBtnText;
     }
   }
 
