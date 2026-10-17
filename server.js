@@ -17,6 +17,17 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Active scan sessions map
 const activeSessions = new Map();
 
+// In-memory cache for completed scans: sessionId / username -> { username, media, createdAt }
+const completedScans = new Map();
+
+// Periodically prune scans older than 2 hours to avoid memory growth
+setInterval(() => {
+  const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
+  for (const [key, val] of completedScans.entries()) {
+    if (val.createdAt < twoHoursAgo) completedScans.delete(key);
+  }
+}, 30 * 60 * 1000).unref();
+
 /**
  * Health & diagnostic check
  */
@@ -76,9 +87,19 @@ app.get('/api/scan', async (req, res) => {
       message: `Starting scan for @${normalized.username}...`
     });
 
-    await scraper.scrape(profileInput, userCookies, (event) => {
+    const scanResult = await scraper.scrape(profileInput, userCookies, (event) => {
       sendEvent(event.type, event);
     });
+
+    if (scanResult && Array.isArray(scanResult.media) && scanResult.media.length > 0) {
+      const scanEntry = {
+        username: scanResult.username || normalized.username,
+        media: scanResult.media,
+        createdAt: Date.now()
+      };
+      completedScans.set(sessionId, scanEntry);
+      completedScans.set(normalized.username.toLowerCase(), scanEntry);
+    }
 
     activeSessions.delete(sessionId);
     res.end();
@@ -181,22 +202,63 @@ app.get('/api/proxy-image', async (req, res) => {
 
 /**
  * Download all or selected media as a ZIP archive
+ * Supports:
+ * 1. GET /api/download-zip?sessionId=... or ?username=... (Direct browser download, 0 payload!)
+ * 2. POST /api/download-zip (JSON payload with sessionId or items)
  */
-app.post('/api/download-zip', async (req, res) => {
-  const { items, profileName } = req.body;
+const handleZipDownload = async (req, res) => {
+  const sessionId = req.query.sessionId || req.body?.sessionId;
+  const usernameParam = req.query.username || req.query.profile || req.body?.profileName;
+  let items = req.body?.items;
+  let username = usernameParam;
+
+  // 1. Try resolving from server memory cache
+  if (sessionId && completedScans.has(sessionId)) {
+    const cached = completedScans.get(sessionId);
+    items = cached.media;
+    username = cached.username || username;
+  } else if (username && completedScans.has(username.toLowerCase())) {
+    const cached = completedScans.get(username.toLowerCase());
+    items = cached.media;
+    username = cached.username || username;
+  }
 
   if (!Array.isArray(items) || items.length === 0) {
-    return res.status(400).json({ error: 'No media items provided for ZIP download.' });
+    return res.status(400).send('No media items available for ZIP packaging. Please re-scan the profile.');
+  }
+
+  // Filter to only items with URLs, keeping it lightweight
+  const validItems = items
+    .filter(it => it && it.url)
+    .map((it, idx) => ({
+      url: it.url,
+      filename: it.filename || `${username || 'media'}_${idx + 1}.jpg`
+    }));
+
+  if (validItems.length === 0) {
+    return res.status(400).send('No downloadable media URLs found.');
   }
 
   try {
-    await streamZipArchive(items, profileName, res);
+    await streamZipArchive(validItems, username, res);
   } catch (err) {
     console.error('ZIP download error:', err.message);
     if (!res.headersSent) {
-      res.status(500).json({ error: 'ZIP packaging failed: ' + err.message });
+      res.status(500).send('ZIP packaging failed: ' + err.message);
     }
   }
+};
+
+app.get('/api/download-zip', handleZipDownload);
+app.post('/api/download-zip', handleZipDownload);
+
+// Clean error handler for malformed JSON or body-parser errors
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    console.warn('Bad JSON request received from client:', err.message);
+    return res.status(400).json({ error: 'Malformed request payload' });
+  }
+  next(err);
 });
 
 app.listen(PORT, () => {

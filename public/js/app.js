@@ -539,45 +539,63 @@
     if (collectedMedia.length === 0) return;
 
     // Strictly username (nothing else)
-    const username = currentProfile && currentProfile.username ? currentProfile.username : 'threads_media';
-    showToast(`Packaging ${collectedMedia.length} files into ${username}.zip...`, 'info');
+    const username = currentProfile && currentProfile.username ? currentProfile.username : 'threads_user';
+    showToast(`Generating ${username}.zip (${collectedMedia.length} files)... Download will begin shortly.`, 'info');
 
     downloadZipBtn.disabled = true;
     const originalBtnText = zipBtnText.textContent;
     zipBtnText.textContent = 'Packaging ZIP...';
 
+    // 1. Direct native download via GET: 0 payload, uses server-cached scan results
+    const getUrl = `/api/download-zip?sessionId=${encodeURIComponent(activeSessionId || '')}&username=${encodeURIComponent(username)}`;
+
     try {
-      const res = await fetch('/api/download-zip', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          items: collectedMedia,
-          profileName: username
-        })
-      });
-
-      if (!res.ok) {
-        throw new Error(`Server returned status ${res.status}`);
-      }
-
-      // Read response as blob and trigger download
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
+      // Trigger native browser download directly via anchor
       const a = document.createElement('a');
-      a.href = url;
+      a.href = getUrl;
       a.download = `${username}.zip`;
       document.body.appendChild(a);
       a.click();
       a.remove();
-      window.URL.revokeObjectURL(url);
 
-      showToast(`Downloaded ${username}.zip successfully!`, 'success');
+      showToast(`ZIP packaging initiated for ${username}.zip!`, 'success');
     } catch (err) {
-      console.error('ZIP download error:', err);
-      showToast('Failed to generate ZIP: ' + err.message, 'error');
+      console.warn('Native GET download trigger warning, attempting lightweight POST fallback:', err);
+      // Fallback: If GET trigger had any issue, send ultra-lightweight payload (only url & filename, no captions/previews)
+      try {
+        const lightweightItems = collectedMedia.map(m => ({ url: m.url, filename: m.filename }));
+        const res = await fetch('/api/download-zip', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: activeSessionId,
+            profileName: username,
+            items: lightweightItems
+          })
+        });
+
+        if (!res.ok) throw new Error(`Server returned status ${res.status}`);
+
+        const blob = await res.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = `${username}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(blobUrl);
+
+        showToast(`Downloaded ${username}.zip successfully!`, 'success');
+      } catch (fallbackErr) {
+        console.error('ZIP download error:', fallbackErr);
+        showToast('Failed to generate ZIP: ' + fallbackErr.message, 'error');
+      }
     } finally {
-      downloadZipBtn.disabled = false;
-      zipBtnText.textContent = originalBtnText;
+      setTimeout(() => {
+        downloadZipBtn.disabled = false;
+        zipBtnText.textContent = originalBtnText;
+      }, 3000);
     }
   }
 
